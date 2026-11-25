@@ -1,0 +1,369 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sahi Daam: can you beat the used car price model?</title><meta name="description" content="Guess the asking price of ten real used cars in Pakistan and see if you can beat a machine learning model."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=Noto+Nastaliq+Urdu:wght@500;700&display=swap" rel="stylesheet"><style>
+
+:root{
+  --road:#0E5A3C; --road-deep:#083D28; --asphalt:#26332C;
+  --paper:#E5ECE8; --ink:#0C1F17; --sign:#FAFCF9; --paint:#FFC20E;
+  --muted:#4A5F55; --alert:#C42B22;
+  --display:'Barlow Condensed','Arial Narrow',sans-serif;
+  --text:'Barlow','Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:16px}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--text);font-size:18px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--road);outline-offset:3px}
+.wrap{max-width:1260px;margin:0 auto;padding:28px 32px 56px}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:44px}
+.brand{display:flex;align-items:center;gap:16px}
+.wordmark{font-family:var(--display);font-weight:700;font-size:42px;line-height:1;letter-spacing:.01em}
+.urdu{font-family:'Noto Nastaliq Urdu','Jameel Noori Nastaleeq',serif;font-weight:700;font-size:24px;color:var(--road);line-height:1.8;padding-top:6px}
+.modes{display:flex;border:2px solid var(--ink);border-radius:6px;overflow:hidden}
+.modes button{background:transparent;border:0;padding:10px 22px;font-family:var(--display);font-weight:700;font-size:24px;cursor:pointer;line-height:1.1}
+.modes button+button{border-left:2px solid var(--ink)}
+.modes button[aria-pressed="true"]{background:var(--road);color:var(--sign)}
+
+/* layout */
+main{display:grid;grid-template-columns:minmax(340px,5fr) 7fr;gap:56px;align-items:start}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(44px,5.2vw,76px);line-height:.98;margin:0 0 16px;letter-spacing:-.005em}
+.lede{margin:0 0 36px;color:var(--muted);max-width:44ch}
+.field{margin-bottom:26px}
+label,.lbl{display:block;font-weight:600;font-size:16px;color:var(--muted);margin-bottom:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+select,input[type=number].plain,input[type=text].plain{width:100%;background:transparent;border:0;border-bottom:3px solid var(--ink);border-radius:0;padding:6px 28px 6px 0;font-weight:600;font-size:22px;appearance:none;-moz-appearance:textfield}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M1 1l7 7 7-7' fill='none' stroke='%230C1F17' stroke-width='2.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center}
+select:focus,input.plain:focus{border-bottom-color:var(--road);outline:none;background-color:rgba(14,90,60,.08)}
+.pair{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.big{width:5.4ch;background:transparent;border:0;border-bottom:3px solid var(--ink);border-radius:0;padding:0;font-family:var(--display);font-weight:700;font-size:48px;line-height:1.05;-moz-appearance:textfield}
+.big.wide{width:6.6ch}
+.big::-webkit-outer-spin-button,.big::-webkit-inner-spin-button,input.plain::-webkit-outer-spin-button,input.plain::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.big:focus{outline:none;border-bottom-color:var(--road);background:rgba(14,90,60,.08)}
+.suffix{color:var(--muted);font-weight:500}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--paint) 50%,transparent 50%) center/18px 2px repeat-x,var(--asphalt)}
+input[type=range]::-moz-range-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--paint) 50%,transparent 50%) center/18px 2px repeat-x,var(--asphalt)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-10px;border-radius:7px;background:var(--sign);border:5px solid var(--road);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:7px;background:var(--sign);border:5px solid var(--road)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{background:transparent;border:2px solid var(--ink);border-radius:4px;padding:6px 14px;font-weight:600;cursor:pointer;font-size:17px}
+.chips button[aria-checked="true"]{background:var(--road);border-color:var(--road);color:var(--sign)}
+.hint{font-size:15px;color:var(--muted);margin:6px 0 0}
+
+/* the sign */
+.sign{background:var(--road);background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1.5px);background-size:7px 7px;border-radius:20px;padding:14px;color:var(--sign)}
+.sign-in{border:5px solid var(--sign);border-radius:11px;padding:32px 40px 30px}
+.sign-label{margin:0 0 6px;font-size:22px;font-weight:500;opacity:.85}
+.price{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 18px;font-family:var(--display);font-weight:700;line-height:.95}
+.cur{font-size:48px;color:var(--paint)}
+.odo{display:inline-flex;font-size:clamp(104px,13.5vw,196px);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wheel{display:inline-block;height:1em;overflow:hidden}
+.strip{display:flex;flex-direction:column;transition:transform 1s cubic-bezier(.16,.84,.24,1)}
+.strip span{display:block;height:1em;line-height:1em}
+.sep{display:inline-block;line-height:1em}
+.odo.mystery{opacity:.55}
+.unit{font-size:clamp(44px,5vw,68px);color:var(--paint)}
+.exact{margin:14px 0 0;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.band{margin:22px 0 0;padding-top:18px;border-top:3px dashed rgba(255,255,255,.4);font-size:20px;max-width:46ch}
+
+/* curve */
+.panel{margin-top:44px}
+.panel h2{font-family:var(--display);font-size:34px;line-height:1.05;margin:0 0 4px}
+.panel p{margin:0 0 12px;color:var(--muted);font-size:16px}
+#curve{width:100%;height:auto;display:block;overflow:visible;touch-action:none}
+#curve text{font-family:var(--text);font-size:13px;fill:var(--muted)}
+.readout{min-height:30px;font-weight:600;font-size:19px}
+
+/* test mode */
+.spec h2{font-family:var(--display);font-size:52px;line-height:1;margin:0 0 6px}
+.spec dl{margin:14px 0 26px;display:grid;grid-template-columns:auto 1fr;gap:6px 22px;font-size:20px}
+.spec dt{color:var(--muted);font-weight:500}
+.spec dd{margin:0;font-weight:600}
+.guess{display:flex;align-items:baseline;gap:12px}
+.guess input.plain{width:190px;font-family:var(--display);font-weight:700;font-size:48px;padding-right:0}
+.btn{display:inline-block;background:var(--paint);color:var(--ink);border:2px solid var(--ink);border-radius:6px;padding:10px 30px;font-family:var(--display);font-weight:700;font-size:28px;line-height:1.1;cursor:pointer;margin-top:22px;box-shadow:0 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.btn:hover{background:#FFCF3D}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.panel p.verdict{color:var(--ink);font-family:var(--display);font-weight:700;font-size:44px;line-height:1.05;margin:0 0 8px}
+.panel p.facts{font-size:19px;color:var(--ink);margin:0 0 6px}
+.panel p.tally{margin:18px 0 0;padding-top:14px;border-top:2px solid var(--ink);font-weight:600;font-size:18px;color:var(--ink)}
+.road{position:relative;height:190px;margin:12px 54px 0}
+.road .lane{position:absolute;left:-54px;right:-54px;top:92px;height:16px;border-radius:8px;background:linear-gradient(90deg,var(--paint) 50%,transparent 50%) center/20px 2px repeat-x,var(--asphalt)}
+.pin{position:absolute;top:90px;width:0;transition:left .9s cubic-bezier(.16,.84,.24,1)}
+.pin i{position:absolute;left:-13px;top:-1px;width:26px;height:20px;border-radius:6px;border:4px solid var(--ink);background:var(--ink)}
+.pin.model i{background:var(--road);border-color:var(--sign);box-shadow:0 0 0 3px var(--road)}
+.pin.you i{background:var(--paint);border-color:var(--ink)}
+.pin b{position:absolute;left:0;transform:translateX(-50%);white-space:nowrap;text-align:center;font-weight:600;font-size:16px;line-height:1.2}
+.pin b em{display:block;font-style:normal;font-family:var(--display);font-size:26px;font-weight:700;line-height:1}
+.pin.up b{bottom:30px}
+.pin.down b{top:34px}
+
+#miniBar{display:none}
+footer{margin-top:64px;padding-top:18px;border-top:2px solid var(--ink);font-size:16px;color:var(--muted);max-width:90ch}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+
+@media (max-width:920px){
+  #miniBar{display:flex;align-items:baseline;gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--road);color:var(--sign);padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));border-top:4px solid var(--sign);font-family:var(--display);font-weight:700;font-size:38px;line-height:1}
+  #miniBar:empty{display:none}
+  #miniBar small{font-size:20px;color:var(--paint)}
+  body{padding-bottom:70px}
+  main{grid-template-columns:1fr;gap:36px}
+  .sign-in{padding:24px 22px}
+  .wrap{padding:20px 18px 40px}
+  header{margin-bottom:28px}
+  .road{margin-left:46px;margin-right:46px}
+  .road .lane{left:-46px;right:-46px}
+}
+@media (prefers-reduced-motion:reduce){
+  .strip,.pin{transition:none}
+  .btn{transition:none}
+}
+/* game additions */
+.progress{display:flex;gap:6px;margin:0 0 6px}
+.progress i{flex:1;height:10px;border-radius:3px;background:rgba(12,31,23,.18)}
+.progress i.done{background:var(--road)}
+.progress i.now{background:var(--paint);box-shadow:inset 0 0 0 2px var(--ink)}
+.running{display:flex;justify-content:space-between;font-weight:600;font-size:18px;margin:0 0 22px;color:var(--muted)}
+.running b{color:var(--ink);font-family:var(--display);font-size:26px;font-weight:700}
+.stats{margin-top:30px;padding-top:14px;border-top:2px solid var(--ink);font-weight:600;font-size:18px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px}
+.duo div{font-family:var(--display);font-weight:700;line-height:.95}
+.duo .n{display:block;font-size:clamp(88px,11vw,160px);font-variant-numeric:tabular-nums}
+.duo .who{display:block;font-family:var(--text);font-weight:500;font-size:22px;opacity:.85;margin-bottom:6px}
+.duo .win .n{color:var(--paint)}
+.of{margin:16px 0 0;font-size:20px;opacity:.9}
+.tablewrap{overflow-x:auto;margin-top:6px}
+table.res{width:100%;border-collapse:collapse;font-size:17px;min-width:520px}
+table.res th{font-weight:600;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:3px solid var(--ink)}
+table.res td{padding:9px 10px;border-bottom:1px solid rgba(12,31,23,.2);font-variant-numeric:tabular-nums}
+table.res td.w{font-weight:700;color:var(--road)}
+table.res td.num,table.res th.num{text-align:right}
+.actions{display:flex;gap:16px;flex-wrap:wrap}
+.btn.alt{background:transparent}
+.btn.alt:hover{background:rgba(12,31,23,.08)}
+.note-sm{font-size:15px;color:var(--muted);margin:14px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="wordmark">Sahi Daam</span><span class="urdu" lang="ur" dir="rtl">صحیح دام</span></div>
+  </header>
+
+  <main>
+    <!-- LEFT -->
+    <div>
+      <section id="startBox">
+        <h1>Can you price a used car better than a machine?</h1>
+        <p class="lede">Ten real listings from Pakistan. You guess each asking price, the model guesses too, and the closest guess scores more.</p>
+        <button class="btn" id="startBtn" type="button">Start a round</button>
+        <p class="stats" id="statsLine" hidden></p>
+      </section>
+
+      <section id="playBox" hidden>
+        <div class="progress" id="progress" aria-hidden="true"></div>
+        <p class="running"><span id="carNo"></span><span>You <b id="youRun">0</b> &nbsp; Model <b id="modRun">0</b></span></p>
+        <div class="spec">
+          <h2 id="specName"></h2>
+          <dl id="specList"></dl>
+          <form id="guessForm" onsubmit="return false" autocomplete="off">
+            <label for="guess">Your guess for the asking price</label>
+            <div class="guess"><input class="plain" id="guess" type="number" min="0" step="0.1" inputmode="decimal" placeholder="e.g. 32.5"><span class="suffix">lakh</span></div>
+            <p class="hint">1 lakh is Rs 100,000. 100 lakh is 1 crore.</p>
+            <button class="btn" id="lockBtn" type="submit">Lock in my guess</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="endBox" hidden>
+        <h1 id="endTitle"></h1>
+        <p class="lede" id="endLede"></p>
+        <div class="actions">
+          <button class="btn" id="againBtn" type="button">Play again</button>
+          <button class="btn alt" id="shareBtn" type="button">Copy my result</button>
+        </div>
+        <p class="note-sm" id="shareNote" role="status"></p>
+        <p class="stats" id="statsLine2"></p>
+      </section>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <section class="sign" id="signWrap" aria-labelledby="signLabel">
+        <div class="sign-in">
+          <p class="sign-label" id="signLabel">What the model says</p>
+          <div id="oneScore">
+            <div class="price"><span class="cur">Rs</span><span class="odo" id="odo" aria-hidden="true"></span><span class="unit" id="unit"></span></div>
+            <p class="sr" id="srPrice" aria-live="polite"></p>
+            <p class="exact" id="exact">&nbsp;</p>
+          </div>
+          <div id="twoScore" hidden>
+            <div class="duo"><div id="duoYou"><span class="who">You</span><span class="n" id="youBig">0</span></div><div id="duoMod"><span class="who">Model</span><span class="n" id="modBig">0</span></div></div>
+            <p class="of">Points out of 1,000. Each car is worth up to 100, and you lose 2 points for every 1% you miss by.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="resultPanel" hidden>
+        <p class="verdict" id="verdict"></p>
+        <p class="facts" id="facts"></p>
+        <div class="road" id="road" aria-hidden="true"><div class="lane"></div></div>
+        <button class="btn" id="nextBtn" type="button">Next car</button>
+      </section>
+
+      <section class="panel" id="tablePanel" hidden>
+        <h2>The ten cars</h2>
+        <div class="tablewrap">
+          <table class="res"><thead><tr><th>Car</th><th class="num">Asking price</th><th class="num">You</th><th class="num">Model</th></tr></thead><tbody id="resRows"></tbody></table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>Real asking prices from used-car listings in Pakistan, September 2026. The model is a statistical estimate trained on other listings, not a valuation, and it can be wrong, especially on rare cars. Asking prices are usually higher than what a car finally sells for.</footer>
+</div>
+<script src="cars.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const ROUND = 10;
+const state = { pool:[], round:[], i:0, results:[], you:0, mod:0, revealed:false };
+
+/* ---------- money ---------- */
+function fmt(p){ return p >= 9.99e6 ? {text:(p/1e7).toFixed(2), unit:'crore'} : {text:(p/1e5).toFixed(1), unit:'lakh'}; }
+function words(p){ const f = fmt(p); return f.text + ' ' + f.unit; }
+function rs(p){ return 'Rs ' + Math.round(p).toLocaleString('en-US'); }
+const score = err => Math.max(0, Math.round(100 - 2*err));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- saved stats ---------- */
+function load(){ try{ return JSON.parse(localStorage.getItem('sahidaam') || '{}'); }catch(e){ return {}; } }
+function save(s){ try{ localStorage.setItem('sahidaam', JSON.stringify(s)); }catch(e){} }
+function statsText(){
+  const s = load(); if(!s.played) return '';
+  return 'Rounds played: ' + s.played + '. Rounds you beat the model: ' + (s.won||0) + '. Best score: ' + (s.best||0) + '.';
+}
+
+/* ---------- odometer ---------- */
+const odo = $('odo'); let odoSig = '';
+function showOdo(text){
+  const sig = text.replace(/\d/g,'#');
+  if(sig !== odoSig){
+    odoSig = sig;
+    odo.innerHTML = [...text].map(c => /\d/.test(c)
+      ? '<span class="wheel"><span class="strip">' + [0,1,2,3,4,5,6,7,8,9].map(n=>'<span>'+n+'</span>').join('') + '</span></span>'
+      : '<span class="sep">'+c+'</span>').join('');
+    odo.classList.remove('mystery'); odo.offsetHeight;
+  }
+  let k = 0;
+  [...text].forEach(c => { if(!/\d/.test(c)) return; const st = odo.querySelectorAll('.strip')[k++]; st.style.transitionDelay = (k*45)+'ms'; st.style.transform = 'translateY('+(-Number(c))+'em)'; });
+}
+function showMystery(){ odoSig=''; odo.innerHTML='<span class="sep">?</span>'; odo.classList.add('mystery'); $('unit').textContent=''; $('exact').innerHTML='&nbsp;'; $('srPrice').textContent=''; }
+function setModel(p){ const f = fmt(p); $('unit').textContent = f.unit; showOdo(f.text); $('exact').textContent = rs(p); $('srPrice').textContent = 'The model says ' + words(p); }
+
+/* ---------- screens ---------- */
+function screen(name){
+  $('startBox').hidden = name!=='start'; $('playBox').hidden = name!=='play'; $('endBox').hidden = name!=='end';
+  $('oneScore').hidden = name==='end'; $('twoScore').hidden = name!=='end';
+  $('resultPanel').hidden = true; $('tablePanel').hidden = name!=='end';
+  $('signLabel').textContent = name==='end' ? 'Round score' : 'What the model says';
+  if(name!=='end') showMystery();
+}
+function toTop(){ window.scrollTo({top:0, behavior: reduced ? 'auto' : 'smooth'}); }
+
+function startRound(){
+  const ok = window.CARS.filter(c => c.actual >= 8e5 && c.actual <= 1e8);
+  const a = ok.slice();
+  for(let k=0;k<ROUND;k++){ const j = k + Math.floor(Math.random()*(a.length-k)); [a[k],a[j]] = [a[j],a[k]]; }
+  state.round = a.slice(0,ROUND); state.i = 0; state.results = []; state.you = 0; state.mod = 0;
+  screen('play'); showCar(); toTop();
+}
+function showCar(){
+  const c = state.round[state.i]; state.revealed = false;
+  $('progress').innerHTML = state.round.map((_,k)=>'<i class="'+(k<state.i?'done':k===state.i?'now':'')+'"></i>').join('');
+  $('carNo').textContent = 'Car ' + (state.i+1) + ' of ' + ROUND;
+  $('youRun').textContent = state.you; $('modRun').textContent = state.mod;
+  $('specName').textContent = c.brand + ' ' + c.model;
+  const age = 2026 - c.year;
+  $('specList').innerHTML = [
+    ['Model year', c.year + (age>0 ? ', ' + age + (age===1?' year':' years') + ' old' : ', brand new')],
+    ['Driven', c.km.toLocaleString('en-US') + ' km'],
+    ['Engine', c.engine ? c.engine + ' cc' : 'Electric, no engine'],
+    ['Fuel', c.fuel], ['Gearbox', c.transmission], ['Listed in', c.city]
+  ].map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('');
+  $('guess').value = ''; $('guess').disabled = false; $('lockBtn').hidden = false;
+  $('resultPanel').hidden = true; showMystery();
+  $('nextBtn').textContent = state.i === ROUND-1 ? 'See my results' : 'Next car';
+  $('guess').focus({preventScroll:true});
+}
+function lockIn(){
+  if(state.revealed) return;
+  const g = parseFloat($('guess').value);
+  if(!isFinite(g) || g <= 0){ $('guess').focus(); $('guess').setAttribute('aria-invalid','true'); return; }
+  $('guess').removeAttribute('aria-invalid');
+  state.revealed = true;
+  const c = state.round[state.i], guess = g*1e5;
+  const err = v => Math.abs(v - c.actual) / c.actual * 100;
+  const yE = err(guess), mE = err(c.predicted), yS = score(yE), mS = score(mE);
+  state.you += yS; state.mod += mS;
+  state.results.push({c, guess, yE, mE, yS, mS});
+  $('youRun').textContent = state.you; $('modRun').textContent = state.mod;
+  $('guess').disabled = true; $('lockBtn').hidden = true;
+  setModel(c.predicted);
+  $('verdict').textContent = Math.abs(yS - mS) <= 1 ? 'Dead heat.' : (yS > mS ? 'You got closer.' : 'The model got closer.');
+  $('facts').textContent = 'Asking price ' + words(c.actual) + '. You said ' + words(guess) + ', off by ' + yE.toFixed(1) + '% (' + yS + ' points). The model said ' + words(c.predicted) + ', off by ' + mE.toFixed(1) + '% (' + mS + ' points).';
+  $('resultPanel').hidden = false;
+  drawRoad(c, guess);
+  if(matchMedia('(max-width:920px)').matches) $('signWrap').scrollIntoView({behavior: reduced?'auto':'smooth', block:'start'});
+}
+function drawRoad(c, guess){
+  const items = [{k:'actual', name:'Asking price', v:c.actual}, {k:'model', name:'Model', v:c.predicted}, {k:'you', name:'You', v:guess}];
+  const vals = items.map(i=>i.v), lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = Math.max((hi-lo)*0.25, hi*0.04), a = lo-pad, b = hi+pad;
+  [...items].sort((p,q)=>p.v-q.v).forEach((it,i)=> it.side = i%2 ? 'down' : 'up');
+  const road = $('road'); road.querySelectorAll('.pin').forEach(n=>n.remove());
+  items.forEach(it=>{
+    const pin = document.createElement('div');
+    pin.className = 'pin ' + it.k + ' ' + it.side; pin.style.left = '0%';
+    pin.innerHTML = '<i></i><b>' + it.name + '<em>' + words(it.v) + '</em></b>';
+    road.appendChild(pin);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ pin.style.left = ((it.v-a)/(b-a)*100) + '%'; }));
+  });
+}
+function next(){
+  if(state.i < ROUND-1){ state.i++; showCar(); toTop(); } else finish();
+}
+function countUp(el, to){
+  if(reduced){ el.textContent = to; return; }
+  const t0 = performance.now(), D = 1100;
+  (function step(t){ const p = Math.min(1,(t-t0)/D), e = 1-Math.pow(1-p,3); el.textContent = Math.round(to*e); if(p<1) requestAnimationFrame(step); })(t0);
+}
+function finish(){
+  screen('end');
+  const won = state.you > state.mod, tie = state.you === state.mod;
+  $('endTitle').textContent = tie ? 'A tie with the machine.' : won ? 'You beat the model.' : 'The model wins this round.';
+  const avg = k => (state.results.reduce((s,r)=>s+r[k],0)/ROUND).toFixed(1);
+  $('endLede').textContent = 'You missed by ' + avg('yE') + '% on average, the model by ' + avg('mE') + '%. ' + (won ? 'Not easy: it studied thousands of listings.' : 'It studied thousands of listings. Want a rematch?');
+  $('duoYou').classList.toggle('win', won); $('duoMod').classList.toggle('win', !won && !tie);
+  countUp($('youBig'), state.you); countUp($('modBig'), state.mod);
+  $('resRows').innerHTML = state.results.map(r => '<tr><td>'+r.c.year+' '+r.c.brand+' '+r.c.model+'</td><td class="num">'+words(r.c.actual)+'</td><td class="num '+(r.yS>r.mS?'w':'')+'">'+words(r.guess)+' ('+r.yE.toFixed(0)+'%)</td><td class="num '+(r.mS>r.yS?'w':'')+'">'+words(r.c.predicted)+' ('+r.mE.toFixed(0)+'%)</td></tr>').join('');
+  const s = load(); s.played = (s.played||0)+1; if(won) s.won = (s.won||0)+1; s.best = Math.max(s.best||0, state.you); save(s);
+  $('statsLine2').textContent = statsText();
+  $('shareNote').textContent = '';
+  toTop();
+}
+async function share(){
+  const t = 'Sahi Daam: I scored ' + state.you + ' and the model scored ' + state.mod + ' guessing the price of 10 used cars in Pakistan. Can you beat it? ' + location.href;
+  try{ await navigator.clipboard.writeText(t); $('shareNote').textContent = 'Copied. Paste it in a chat.'; }
+  catch(e){ $('shareNote').textContent = t; }
+}
+
+$('startBtn').onclick = startRound;
+$('againBtn').onclick = startRound;
+$('shareBtn').onclick = share;
+$('nextBtn').onclick = next;
+$('guessForm').addEventListener('submit', lockIn);
+(function init(){ const t = statsText(); if(t){ $('statsLine').textContent = t; $('statsLine').hidden = false; } screen('start'); })();
+</script>
+</body>
+</html>
