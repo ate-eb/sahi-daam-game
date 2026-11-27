@@ -120,6 +120,8 @@ footer{margin-top:64px;padding-top:18px;border-top:2px solid var(--ink);font-siz
   .btn{transition:none}
 }
 /* game additions */
+.chips.diff button{font-family:var(--display);font-weight:700;font-size:26px;padding:8px 24px;line-height:1.1}
+.diffbox{margin:0 0 26px}
 .progress{display:flex;gap:6px;margin:0 0 6px}
 .progress i{flex:1;height:10px;border-radius:3px;background:rgba(12,31,23,.18)}
 .progress i.done{background:var(--road)}
@@ -144,12 +146,6 @@ table.res td.num,table.res th.num{text-align:right}
 .btn.alt:hover{background:rgba(12,31,23,.08)}
 .note-sm{font-size:15px;color:var(--muted);margin:14px 0 0}
 </style>
-  <script>
-  window.va = window.va || function () {
-    (window.vaq = window.vaq || []).push(arguments);
-  };
-</script>
-<script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -163,6 +159,15 @@ table.res td.num,table.res th.num{text-align:right}
       <section id="startBox">
         <h1>Can you price a used car better than a machine?</h1>
         <p class="lede">Ten real listings from Pakistan. You guess each asking price, the model guesses too, and the closest guess scores more.</p>
+        <div class="diffbox">
+          <span class="lbl" id="diffLbl">Difficulty</span>
+          <div class="chips diff" id="diff" role="radiogroup" aria-labelledby="diffLbl">
+            <button type="button" role="radio" aria-checked="false" data-d="easy">Easy</button>
+            <button type="button" role="radio" aria-checked="false" data-d="medium">Medium</button>
+            <button type="button" role="radio" aria-checked="false" data-d="hard">Hard</button>
+          </div>
+          <p class="hint" id="diffHint"></p>
+        </div>
         <button class="btn" id="startBtn" type="button">Start a round</button>
         <p class="stats" id="statsLine" hidden></p>
       </section>
@@ -175,7 +180,7 @@ table.res td.num,table.res th.num{text-align:right}
           <dl id="specList"></dl>
           <form id="guessForm" onsubmit="return false" autocomplete="off">
             <label for="guess">Your guess for the asking price</label>
-            <div class="guess"><input class="plain" id="guess" type="number" min="0" step="0.1" inputmode="decimal" placeholder="e.g. 32.5"><span class="suffix">lakh</span></div>
+            <div class="guess"><input class="plain" id="guess" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 32.5"><span class="suffix">lakh</span></div>
             <p class="hint">1 lakh is Rs 100,000. 100 lakh is 1 crore.</p>
             <button class="btn" id="lockBtn" type="submit">Lock in my guess</button>
           </form>
@@ -227,13 +232,19 @@ table.res td.num,table.res th.num{text-align:right}
     </div>
   </main>
 
-  <footer>Real asking prices from used-car listings in Pakistan, September 2026. The model is a statistical estimate trained on other listings, not a valuation, and it can be wrong, especially on rare cars. Asking prices are usually higher than what a car finally sells for.</footer>
+  <footer>Real asking prices from used-car listings in Pakistan, September 2026. The model is a statistical estimate trained on other listings, not a valuation, and it can be wrong, especially on rare cars. Asking prices are usually higher than what a car finally sells for. On Easy and Medium the model's guesses are deliberately made less accurate so the game is fairer for people. Hard uses the model's real guesses.</footer>
 </div>
 <script src="cars.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ROUND = 10;
-const state = { pool:[], round:[], i:0, results:[], you:0, mod:0, revealed:false };
+const state = { pool:[], round:[], i:0, results:[], you:0, mod:0, revealed:false, diff:'medium' };
+const DIFF = {
+  easy:   { label:'Easy',   sigma:0.5, hint:'The model plays with a big handicap. On a typical car it misses by about 35%.' },
+  medium: { label:'Medium', sigma:0.3, hint:'The model plays with a small handicap. On a typical car it misses by about 20%.' },
+  hard:   { label:'Hard',   sigma:0,   hint:'The real model, no handicap. On a typical car it misses by about 5%.' }
+};
+function gauss(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.max(-2.2, Math.min(2.2, Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v))); }
 
 /* ---------- money ---------- */
 function fmt(p){ return p >= 9.99e6 ? {text:(p/1e7).toFixed(2), unit:'crore'} : {text:(p/1e5).toFixed(1), unit:'lakh'}; }
@@ -243,11 +254,23 @@ const score = err => Math.max(0, Math.round(100 - 2*err));
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- saved stats ---------- */
-function load(){ try{ return JSON.parse(localStorage.getItem('sahidaam') || '{}'); }catch(e){ return {}; } }
+function load(){
+  let s = {};
+  try{ s = JSON.parse(localStorage.getItem('sahidaam') || '{}'); }catch(e){}
+  if(s.played && !s.stats){ s.stats = { hard:{ played:s.played, won:s.won||0, best:s.best||0 } }; }   // older saves came from the real model
+  return s;
+}
 function save(s){ try{ localStorage.setItem('sahidaam', JSON.stringify(s)); }catch(e){} }
-function statsText(){
-  const s = load(); if(!s.played) return '';
-  return 'Rounds played: ' + s.played + '. Rounds you beat the model: ' + (s.won||0) + '. Best score: ' + (s.best||0) + '.';
+function statsText(d){
+  const t = (load().stats || {})[d]; if(!t || !t.played) return '';
+  return DIFF[d].label + ': rounds played ' + t.played + ', rounds you beat the model ' + (t.won||0) + ', best score ' + (t.best||0) + '.';
+}
+function setDiff(d, keep){
+  state.diff = d;
+  document.querySelectorAll('#diff button').forEach(b => b.setAttribute('aria-checked', b.dataset.d === d));
+  $('diffHint').textContent = DIFF[d].hint;
+  const t = statsText(d); $('statsLine').textContent = t; $('statsLine').hidden = !t;
+  if(!keep){ const s = load(); s.diff = d; save(s); }
 }
 
 /* ---------- odometer ---------- */
@@ -281,13 +304,14 @@ function startRound(){
   const ok = window.CARS.filter(c => c.actual >= 8e5 && c.actual <= 1e8);
   const a = ok.slice();
   for(let k=0;k<ROUND;k++){ const j = k + Math.floor(Math.random()*(a.length-k)); [a[k],a[j]] = [a[j],a[k]]; }
-  state.round = a.slice(0,ROUND); state.i = 0; state.results = []; state.you = 0; state.mod = 0;
+  const sg = DIFF[state.diff].sigma;
+  state.round = a.slice(0,ROUND).map(c => ({...c, mguess: Math.round(c.predicted * Math.exp(sg * gauss()) / 1000) * 1000})); state.i = 0; state.results = []; state.you = 0; state.mod = 0;
   screen('play'); showCar(); toTop();
 }
 function showCar(){
   const c = state.round[state.i]; state.revealed = false;
   $('progress').innerHTML = state.round.map((_,k)=>'<i class="'+(k<state.i?'done':k===state.i?'now':'')+'"></i>').join('');
-  $('carNo').textContent = 'Car ' + (state.i+1) + ' of ' + ROUND;
+  $('carNo').textContent = 'Car ' + (state.i+1) + ' of ' + ROUND + ', ' + DIFF[state.diff].label;
   $('youRun').textContent = state.you; $('modRun').textContent = state.mod;
   $('specName').textContent = c.brand + ' ' + c.model;
   const age = 2026 - c.year;
@@ -310,20 +334,20 @@ function lockIn(){
   state.revealed = true;
   const c = state.round[state.i], guess = g*1e5;
   const err = v => Math.abs(v - c.actual) / c.actual * 100;
-  const yE = err(guess), mE = err(c.predicted), yS = score(yE), mS = score(mE);
+  const yE = err(guess), mE = err(c.mguess), yS = score(yE), mS = score(mE);
   state.you += yS; state.mod += mS;
   state.results.push({c, guess, yE, mE, yS, mS});
   $('youRun').textContent = state.you; $('modRun').textContent = state.mod;
   $('guess').disabled = true; $('lockBtn').hidden = true;
-  setModel(c.predicted);
+  setModel(c.mguess);
   $('verdict').textContent = Math.abs(yS - mS) <= 1 ? 'Dead heat.' : (yS > mS ? 'You got closer.' : 'The model got closer.');
-  $('facts').textContent = 'Asking price ' + words(c.actual) + '. You said ' + words(guess) + ', off by ' + yE.toFixed(1) + '% (' + yS + ' points). The model said ' + words(c.predicted) + ', off by ' + mE.toFixed(1) + '% (' + mS + ' points).';
+  $('facts').textContent = 'Asking price ' + words(c.actual) + '. You said ' + words(guess) + ', off by ' + yE.toFixed(1) + '% (' + yS + ' points). The model said ' + words(c.mguess) + ', off by ' + mE.toFixed(1) + '% (' + mS + ' points).';
   $('resultPanel').hidden = false;
   drawRoad(c, guess);
   if(matchMedia('(max-width:920px)').matches) $('signWrap').scrollIntoView({behavior: reduced?'auto':'smooth', block:'start'});
 }
 function drawRoad(c, guess){
-  const items = [{k:'actual', name:'Asking price', v:c.actual}, {k:'model', name:'Model', v:c.predicted}, {k:'you', name:'You', v:guess}];
+  const items = [{k:'actual', name:'Asking price', v:c.actual}, {k:'model', name:'Model', v:c.mguess}, {k:'you', name:'You', v:guess}];
   const vals = items.map(i=>i.v), lo = Math.min(...vals), hi = Math.max(...vals);
   const pad = Math.max((hi-lo)*0.25, hi*0.04), a = lo-pad, b = hi+pad;
   [...items].sort((p,q)=>p.v-q.v).forEach((it,i)=> it.side = i%2 ? 'down' : 'up');
@@ -349,27 +373,29 @@ function finish(){
   const won = state.you > state.mod, tie = state.you === state.mod;
   $('endTitle').textContent = tie ? 'A tie with the machine.' : won ? 'You beat the model.' : 'The model wins this round.';
   const avg = k => (state.results.reduce((s,r)=>s+r[k],0)/ROUND).toFixed(1);
-  $('endLede').textContent = 'You missed by ' + avg('yE') + '% on average, the model by ' + avg('mE') + '%. ' + (won ? 'Not easy: it studied thousands of listings.' : 'It studied thousands of listings. Want a rematch?');
+  $('endLede').textContent = 'You missed by ' + avg('yE') + '% on average, the model by ' + avg('mE') + '%. ' + (won ? 'Not easy: it studied thousands of listings.' : 'It studied thousands of listings. Want a rematch?') + ' Difficulty: ' + DIFF[state.diff].label + (state.diff==='hard' ? ' (the real model).' : ' (the model plays with a handicap).');
   $('duoYou').classList.toggle('win', won); $('duoMod').classList.toggle('win', !won && !tie);
   countUp($('youBig'), state.you); countUp($('modBig'), state.mod);
-  $('resRows').innerHTML = state.results.map(r => '<tr><td>'+r.c.year+' '+r.c.brand+' '+r.c.model+'</td><td class="num">'+words(r.c.actual)+'</td><td class="num '+(r.yS>r.mS?'w':'')+'">'+words(r.guess)+' ('+r.yE.toFixed(0)+'%)</td><td class="num '+(r.mS>r.yS?'w':'')+'">'+words(r.c.predicted)+' ('+r.mE.toFixed(0)+'%)</td></tr>').join('');
-  const s = load(); s.played = (s.played||0)+1; if(won) s.won = (s.won||0)+1; s.best = Math.max(s.best||0, state.you); save(s);
-  $('statsLine2').textContent = statsText();
+  $('resRows').innerHTML = state.results.map(r => '<tr><td>'+r.c.year+' '+r.c.brand+' '+r.c.model+'</td><td class="num">'+words(r.c.actual)+'</td><td class="num '+(r.yS>r.mS?'w':'')+'">'+words(r.guess)+' ('+r.yE.toFixed(0)+'%)</td><td class="num '+(r.mS>r.yS?'w':'')+'">'+words(r.c.mguess)+' ('+r.mE.toFixed(0)+'%)</td></tr>').join('');
+  const s = load(); s.stats = s.stats || {}; const t = s.stats[state.diff] = s.stats[state.diff] || {played:0, won:0, best:0};
+  t.played++; if(won) t.won++; t.best = Math.max(t.best, state.you); save(s);
+  $('statsLine2').textContent = statsText(state.diff);
   $('shareNote').textContent = '';
   toTop();
 }
 async function share(){
-  const t = 'Sahi Daam: I scored ' + state.you + ' and the model scored ' + state.mod + ' guessing the price of 10 used cars in Pakistan. Can you beat it? ' + location.href;
+  const t = 'Sahi Daam: I scored ' + state.you + ' and the model scored ' + state.mod + ' guessing the price of 10 used cars in Pakistan on ' + DIFF[state.diff].label + '. Can you beat it? ' + location.href;
   try{ await navigator.clipboard.writeText(t); $('shareNote').textContent = 'Copied. Paste it in a chat.'; }
   catch(e){ $('shareNote').textContent = t; }
 }
 
 $('startBtn').onclick = startRound;
-$('againBtn').onclick = startRound;
+$('againBtn').onclick = () => { screen('start'); setDiff(state.diff, true); toTop(); };
 $('shareBtn').onclick = share;
 $('nextBtn').onclick = next;
 $('guessForm').addEventListener('submit', lockIn);
-(function init(){ const t = statsText(); if(t){ $('statsLine').textContent = t; $('statsLine').hidden = false; } screen('start'); })();
+$('diff').addEventListener('click', e => { const b = e.target.closest('button'); if(b) setDiff(b.dataset.d); });
+(function init(){ const d = load().diff; setDiff(DIFF[d] ? d : 'medium', true); screen('start'); })();
 </script>
 </body>
 </html>
